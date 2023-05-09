@@ -1,0 +1,258 @@
+#importo dos librerias, la primera para que haya tiempos de espera para los input del usuario y la segunda para represetar en tabla el pedido, y los datos del encargado
+import time 
+import sqlite3
+import os
+from tabulate import tabulate
+import tkinter as tk
+
+
+if os.name == "nt":
+    borrar = "cls"
+else:
+    borrar = "clear"
+
+#creo una tabla
+####################################
+def chequear():
+    conn = sqlite3.connect("basededatos.sqlite")
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "CREATE TABLE ventas (Cliente TEXT, ComboSimple INT, ComboDoble INT, ComboTriple INT, Postre INT, Total REAL, Monto REAL, Vuelto REAL)"
+        )
+        cursor.execute(
+             "CREATE TABLE registro (Evento TEXT, Encargado TEXT, Fecha TEXT, Caja REAL)"
+        )
+        print("Bienvenido por primera vez")
+    except sqlite3.OperationalError:
+        print("Bienvenido nuevamente")
+    conn.commit()
+    conn.close()
+
+
+#creo un objeto vacio como diccionario para representar los datos del el turno y lo facturado en caja por encargadao
+turno = {'estado': 'OUT',
+         'encargado':'', 
+         'entrada': '',
+         'caja': 0
+         }
+
+#Despliegue de Bienvenida
+print('Bienvenido a Hamburgueseria IT !!!')
+
+#Despliegue de Menu, donde pido la opcion y decido por menu
+def despliego_menu():
+        
+    print('1 – Ingreso nuevo pedido')
+    print('2 – Registro de Entrada')
+    print('3 – Rgistro de Salida') 
+
+    try:                       
+        opcion = int(input('Ingrese una opcion 1,2 o 3 para continuar: '))
+        
+        if isinstance(1,int) or isinstance(2,int) or isinstance(3,int):
+                #raise TypeError('Vuelva a intentar con un 1,2 o 3 opcion de menu...')
+                print(f'Su opcion elegida es la: {opcion} ')
+                valido_menu(opcion)
+        
+        else:
+            print(f'Ingrese 1,2 o 3.... ')
+        
+    except (TypeError,ValueError):           
+            print('Vuelva a intentarlo...')
+           
+#registro lo pedido por el usuario dentro del un objeto diccionario mi_pedido para pasar en pantalla y para calcular la caja
+def registro_pedido():
+    
+    mi_pedido = {}
+     
+    nombre_cliente = input('Ingrese el nombre del Cliente: ')
+            
+    print('Estos son los Combos en Hambueseria IT: ')
+        
+    table = [['Hamburguesa simple + Bebida + Fritas', 300], ['(Hamburguesa doble + Bebida + Fritas', 400], ['Hamburguesa Triple + Bebida + Fritas', 450], ['Flurby', 100]]
+    headers = ['Producto', 'Precio']
+    print( tabulate(table,headers, tablefmt='pretty'))
+
+    simple = int(input('Ingrese cantidad de Combo Simples: '))
+    time.sleep(1)
+    doble = int(input('Ingrese cantidad de Combo Dobles: '))
+    time.sleep(1)
+    triple = int(input('Ingrese cantidad de Combo Tripes: '))
+    time.sleep(1)
+    postre = int(input('Ingrese la cantidad de Flurbys: ')) 
+    time.sleep(1)
+
+    mi_pedido['Cliente']=nombre_cliente
+    mi_pedido['Combo Simple']=simple
+    mi_pedido['Combo Doble']=doble    
+    mi_pedido['Combo Triple']=triple
+    mi_pedido['Postre']=postre
+        
+    # for n in range(len(table)): 
+    simple_total = simple * table[0][1]
+    doble_total = doble * table[1][1]
+    triple_total = triple * table[2][1]
+    postre_total = postre * table[3][1]
+    
+    gran_total = int(simple_total + doble_total + triple_total + postre_total)
+  
+    print(f'El total de su pedido es de: {gran_total}')
+    billete = input('Ingrese el billete para abonar: ')
+    vuelto = int(billete) - int(gran_total) 
+            
+    mi_pedido['Total: ']= gran_total
+    mi_pedido['Monto: ']= billete
+    mi_pedido['Vuelto: ']=vuelto
+
+    #escribimos en una tabla en la base de datos
+    
+    #pedimos por pantalla la confirmacion de la compra antes de grabarla.
+    confirma = input('Confirma la Compra de su Pedido, marque una opcion, Y/N: ')  
+    
+    if confirma == 'Y' or 'y':
+        #aca grabamos la sumatoria de los pedidos dentro del objeto turno inicial para calcular la caja por empleado.       
+        turno['caja'] += gran_total
+        
+        #usamos la importacion para imprimir en pantalla en forma de tabla        
+        headers2 = ['Concepto', 'Valor']
+        mi_pedido_tabla = list(map(list, mi_pedido.items())) 
+        print( tabulate(mi_pedido_tabla, headers2, tablefmt='pretty'))
+
+        conn = sqlite3.connect("basededatos.sqlite")
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO ventas VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (nombre_cliente, simple, doble, triple, postre, turno['caja'], billete, vuelto))
+        conn.commit()
+        conn.close()
+        print("Producto salvado con exito")
+
+    # except sqlite3.OperationalError:
+    #     print("No se puede guardar en este momento. Vuelva a intentarlo más tarde")
+
+
+        #abrimos y escribimos los datos de mi pedido dentro de un archivo txt que se llama Ventas.
+        f = open('Ventas.text', 'a')
+        datos = f.write(f'{mi_pedido}-{time.asctime()}' + '\n')
+        print(datos)
+        # print(turno['encargado'])
+        # print(turno['caja'])
+        f.close()
+        #si no confirma no se graba nada              
+    elif confirma == 'N' or 'n':
+        print('Gracias por usar el el Sistema de Registro de Pedidos')
+             
+    else:
+         print( 'Error')
+            
+    return mi_pedido
+
+
+     
+
+    
+#valido las opcionces de menu
+def valido_menu(opcion):
+        
+    if opcion == 1:
+        #si no hay empleado trabajando, tiene que registrarse, 
+        if turno.get('estado') == 'OUT':     
+             print('Ingrese su entrada seleccionando 2')
+        #si esta presente, entonces puede registrar el pedido             
+        else:
+            registro_pedido()
+      
+    elif opcion == 2:
+        #si ya hay una persona registrada entonces no puede registrarse otra vez
+        if turno.get('estado') == 'IN':     
+             print('Ingrese su salida seleccionando 3')
+        #si no hay nadie, lo dejamos registrarse con la funcion registro_entrada()
+        else:
+            print('Sistema de Registro de Empleados')
+            registro_entrada()
+    
+    elif opcion == 3:
+        #si no hay empleado trabajando, no puede regustrar su salida, tiene que registrarse, 
+        if turno.get('estado') == 'OUT':     
+             print('Ingrese su entrada seleccionando 2')
+        
+        else:
+        #si hay alguien, lo dejamos irse con la funcion registro_salida()        
+            registro_salida()
+            print('Gracias por usar el Sistema de Pedidos')
+     
+    else:
+        #si ingresa un numero diferente alo que pide el menu, le pide un un re ingreso de los datos 
+        print('Por favor ingrese una opcion dentro del menu: ')
+    
+    #retornamos la opcion elegida para validar el menu 
+    return opcion            
+
+#Pedido datos den encargado para completar el dicionario de turno y poder guardarlo en regsitro.txt 
+def registro_entrada():
+    #nombre de encargado, el timestamp y cambio el estado de OUT a IN y la caja la incializo en cero para cada nuevo encargado
+    encargado = input('Ingrese su nombre de Encargado: ')
+    turno['estado'] = 'IN'
+    turno['encargado'] = encargado
+    entrada = time.asctime()
+    turno['entrada'] = entrada
+    turno['caja'] = 0
+    
+    print(f'Bienvenido {encargado}, Recuerda, siempre hay que recibir al cliente con una sonrisa :)!')
+    #controlo que me cargue el turno correctacamente
+    print(turno)
+
+    #guardo los datos en un tabla de registros
+    try:
+        conn = sqlite3.connect("basededatos.sqlite")
+        cursor = conn.cursor()        
+        cursor.execute("INSERT INTO registro VALUES (?, ?, ?, ?)", (turno['estado'],encargado, entrada,turno['caja']))
+        conn.commit()
+        conn.close()
+        print("Resgistro salvado con exito")
+    except sqlite3.OperationalError:
+        print("No se puede guardar en este momento. Vuelva a intentarlo más tarde")
+
+
+
+    #creo y escribo el resgistro con el estado de In de registro de entrada en n archivo de Registro.txt
+    f = open('Registro.txt','a')
+    registro_entrada = f.write(f' IN - {encargado}  - {entrada}' + '\n')
+    print(registro_entrada)
+    f.close()
+
+    #retorno el diccionario turno con los datos cargados
+    return turno
+
+#Funcion que me registra la salida del encargado y le dejamos el turno en vacio para un nuevo registro de entrada. 
+#Tambienle cambiamos el estado de IN a OUT y grabamos otra vez la salida con el nombre, y timestamp
+#tambien traemos el dato de la caja gfacturada desde el diccionario turno
+def registro_salida():
+    
+    turno['estado'] = 'OUT'
+    print('Ud termino su dia de trabajo')
+  
+    f = open('Registro.txt','a') 
+    registro_salida = f.write(f' OUT - {turno.get("encargado")} - {time.asctime()} - {turno.get("caja")}'  + '\n')
+     
+    print(registro_salida)
+    f.close()
+    turno['encargado'] = ''
+    turno['caja'] = 0
+
+########################################################
+
+#esta es la ejecucion del programa donde constantemente cada vez que termina una funcion y no esta haciendo otra cosa
+
+#creo la base de datos
+
+chequear()
+
+
+#me va a desplegar el menu de las tres opciones en pantalla.
+while True:
+    despliego_menu()
+
+
+
+
+
