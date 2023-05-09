@@ -25,12 +25,18 @@ La aplicacion hace incapie en la validacion de datos de entrada y de que el mism
 
 ## Como utilizar el Programa
 
-1.Correr el Programa desde una hola de Visual Studio Code.
-2.Ingresar el Registro del Encargado con la opcion '2'.
-3.Corroborar los datos del mismo en el archivo Registro.txt .
-4.Realizar un pedido en la interfaz grafica.
-5.Registrar la salidad del Encargado a traves de la consola con la opcion '3'.
-6.Corroborar los datos de la salida en el archivo Registro.txt.
-7.Corroborar los datos en la tabla de Ventas y Registro creadas durante la ejecucion.
+1. Correr el Programa desde una hola de Visual Studio Code.
+
+2. Ingresar el Registro del Encargado con la opcion '2'.
+
+3. Corroborar los datos del mismo en el archivo Registro.txt .
+
+4. Realizar un pedido en la interfaz grafica.
+
+5. Registrar la salidad del Encargado a traves de la consola con la opcion '3'.
+
+6. Corroborar los datos de la salida en el archivo Registro.txt.
+
+7. Corroborar los datos en la tabla de Ventas y Registro creadas durante la ejecucion.
 
 
